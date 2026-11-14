@@ -50,7 +50,7 @@ jobs:
           echo "GODOT_ANDROID_SDK_PATH=$SDK" >> "$GITHUB_ENV"
           echo "GODOT_JAVA_SDK_PATH=$JAVA" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.config/godot"
-          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' "$SDK" "$JAVA" > "$HOME/.config/godot/editor_settings-4.4.tres"
+          # Configure EditorSettings through Godot itself after project import.
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
@@ -63,7 +63,7 @@ jobs:
           keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Import Godot project
         shell: bash
-        run: godot --headless --path godot3d --editor --import
+        run: |\n          godot --headless --path godot3d --editor --import\n          godot --headless --path godot3d --editor --script res://ci_android_setup.gd
       - name: Export debug APK
         shell: bash
         run: |
