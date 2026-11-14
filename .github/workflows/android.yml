@@ -30,9 +30,10 @@ jobs:
           test -s "$APK"
           $ANDROID_HOME/build-tools/35.0.0/aapt dump badging "$APK" | grep -E "package:|targetSdkVersion:|sdkVersion:"
           $ANDROID_HOME/build-tools/35.0.0/aapt dump badging "$APK" | grep -q "targetSdkVersion:'35'"
-          EXPECTED_CODE=$(sed -nE 's/^[[:space:]]*versionCode[[:space:]]+([0-9]+).*/\\1/p' app/build.gradle | head -1)
+          EXPECTED_CODE=$(awk '/^[[:space:]]*versionCode[[:space:]]+[0-9]+/ { print $2; exit }' app/build.gradle)
           test -n "$EXPECTED_CODE"
-          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging "$APK" | grep -Fq "versionCode='$EXPECTED_CODE'"
+          BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK")
+          printf '%s\n' "$BADGING" | grep -F "versionCode='$EXPECTED_CODE'"
           echo "Verified APK versionCode=$EXPECTED_CODE"
       - name: Record APK provenance
         run: |
