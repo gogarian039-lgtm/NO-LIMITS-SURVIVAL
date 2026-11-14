@@ -36,6 +36,15 @@ jobs:
           fi
           test -n "$SDK"
           test -d "$SDK/platforms"
+          # Godot 4.4 Android export requires Android SDK platform 35 and build-tools 35.0.0.
+          mkdir -p "$SDK/cmdline-tools"
+          curl -fL --retry 3 -o /tmp/android-cmdline-tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -oq /tmp/android-cmdline-tools.zip -d /tmp/android-cli
+          mv /tmp/android-cli/cmdline-tools "$SDK/cmdline-tools/latest"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses > /dev/null || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          test -f "$SDK/platforms/android-35/android.jar"
+          test -x "$SDK/build-tools/35.0.0/aapt2"
           JAVA="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
           test -d "$JAVA"
           echo "GODOT_ANDROID_SDK_PATH=$SDK" >> "$GITHUB_ENV"
