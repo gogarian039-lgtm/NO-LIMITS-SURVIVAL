@@ -163,9 +163,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			move_touch = (event.position - move_start) / 90.0
 			move_touch = move_touch.limit_length(1.0)
 		if event.index == look_touch_id:
-			var delta := event.position - look_last
-			yaw -= delta.x * 0.004
-			pitch = clamp(pitch - delta.y * 0.004, -1.1, 0.75)
+			var drag_delta: Vector2 = event.position - look_last
+			yaw -= drag_delta.x * 0.004
+			pitch = clamp(pitch - drag_delta.y * 0.004, -1.1, 0.75)
 			look_last = event.position
 	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 		yaw -= event.relative.x * 0.004
