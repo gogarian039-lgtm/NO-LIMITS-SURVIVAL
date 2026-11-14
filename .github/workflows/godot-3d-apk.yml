@@ -93,11 +93,16 @@ jobs:
           timeout 120s godot --headless --path godot3d --editor --import
           echo "Checking Godot editor configuration:"
           grep -E 'export/android/(android_sdk_path|java_sdk_path|debug_keystore)' "$HOME/.config/godot/editor_settings-4.4.tres" || true
+          echo "Checking Android export templates:"
+          ls -lh "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
           echo "Checking Android export preset:"
           grep -E '^(name|platform|package/unique_name|keystore/debug|architectures/arm64-v8a)=' godot3d/export_presets.cfg
           test -x "$ANDROID_HOME/platform-tools/adb"
           test -x "$ANDROID_HOME/build-tools/35.0.0/aapt2"
           test -f "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey
+          echo "Installed SDK paths:"
+          ls -ld "$ANDROID_HOME/platforms/android-35" "$ANDROID_HOME/build-tools/35.0.0" "$ANDROID_HOME/platform-tools"
 
       - name: Export debug APK
         shell: bash
@@ -113,7 +118,7 @@ jobs:
           set -e
           if [ "$result" -ne 0 ]; then
             echo "::error::Godot Android export failed (exit $result). Relevant diagnostics:"
-            grep -Ei "error|failed|invalid|missing|cannot|could not" build/export.log | tail -60 || true
+            grep -Ei "error|failed|invalid|missing|cannot|could not|configuration|keystore|sdk|template" build/export.log | tail -100 || true
             exit "$result"
           fi
           test -s build/NO-LIMITS-SURVIVAL-3D.apk
