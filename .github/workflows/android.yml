@@ -2,6 +2,8 @@ name: Build Android APK
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -40,3 +42,17 @@ jobs:
           name: NO-LIMITS-SURVIVAL-1.2-android16-${{ github.run_number }}
           path: apk-release/
           if-no-files-found: error
+      - name: Publish APK directly in GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: android-prototype-v1.2
+          name: NO LIMITS SURVIVAL Android prototype v1.2
+          body: |
+            Experimental lightweight Android prototype (not the Godot 3D game).
+            Built from commit ${{ github.sha }}.
+            Download the .apk asset directly; no ZIP extraction required.
+          files: |
+            apk-release/*.apk
+            apk-release/BUILD-INFO.txt
+          fail_on_unmatched_files: true
