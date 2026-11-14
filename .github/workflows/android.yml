@@ -38,20 +38,20 @@ jobs:
       - name: Record APK provenance
         run: |
           mkdir -p apk-release
-          cp app/build/outputs/apk/debug/app-debug.apk apk-release/NO-LIMITS-SURVIVAL-1.5-food-water.apk
-          printf 'Commit: %s\nVersion: 1.5-food-water\nPackage: com.nolimits.survival\n' "$GITHUB_SHA" > apk-release/BUILD-INFO.txt
+          cp app/build/outputs/apk/debug/app-debug.apk apk-release/NO-LIMITS-SURVIVAL-1.6-exploration.apk
+          printf 'Commit: %s\nVersion: 1.6-exploration\nPackage: com.nolimits.survival\n' "$GITHUB_SHA" > apk-release/BUILD-INFO.txt
           sha256sum apk-release/*.apk >> apk-release/BUILD-INFO.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: NO-LIMITS-SURVIVAL-1.5-food-water-${{ github.run_number }}
+          name: NO-LIMITS-SURVIVAL-1.6-exploration-${{ github.run_number }}
           path: apk-release/
           if-no-files-found: error
       - name: Publish APK directly in GitHub Releases
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: android-prototype-v1.5
-          name: NO LIMITS SURVIVAL Android prototype v1.5
+          tag_name: android-prototype-v1.6
+          name: NO LIMITS SURVIVAL Android prototype v1.6
           body: |
             Experimental lightweight Android prototype (not the Godot 3D game).
             Built from commit ${{ github.sha }}.
