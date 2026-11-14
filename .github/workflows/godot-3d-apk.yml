@@ -104,34 +104,6 @@ jobs:
           echo "Installed SDK paths:"
           ls -ld "$ANDROID_HOME/platforms/android-35" "$ANDROID_HOME/build-tools/35.0.0" "$ANDROID_HOME/platform-tools"
 
-      - name: Diagnose Godot Android export configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > godot3d/ci_export_diagnostics.gd <<'GDSCRIPT'
-          extends SceneTree
-
-          func _initialize() -> void:
-              var settings := EditorInterface.get_editor_settings()
-              var sdk := OS.get_environment("ANDROID_HOME")
-              var java := OS.get_environment("JAVA_HOME")
-              var key := OS.get_environment("HOME").path_join(".android/debug.keystore")
-              var values := {
-                  "export/android/android_sdk_path": sdk,
-                  "export/android/java_sdk_path": java,
-                  "export/android/debug_keystore": key,
-                  "export/android/debug_keystore_user": "androiddebugkey",
-                  "export/android/debug_keystore_pass": "android",
-              }
-              for setting in values:
-                  settings.set_setting(setting, values[setting])
-                  print("CI configured ", setting, " = ", "<hidden>" if setting.ends_with("_pass") else values[setting])
-              settings.save()
-              quit()
-          GDSCRIPT
-          timeout --signal=TERM --kill-after=5s 45s godot --headless --path godot3d --editor --script res://ci_export_diagnostics.gd
-          rm -f godot3d/ci_export_diagnostics.gd
-
       - name: Export debug APK
         shell: bash
         run: |
