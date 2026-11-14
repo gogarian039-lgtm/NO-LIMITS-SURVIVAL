@@ -41,7 +41,7 @@ jobs:
           echo "GODOT_ANDROID_SDK_PATH=$SDK" >> "$GITHUB_ENV"
           echo "GODOT_JAVA_SDK_PATH=$JAVA" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.config/godot"
-          printf '[gd_resource type="EditorSettings" format=3]\\n\\n[resource]\\nexport/android/android_sdk_path = "%s"\\nexport/android/java_sdk_path = "%s"\\n' "$SDK" "$JAVA" > "$HOME/.config/godot/editor_settings-4.4.tres"
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' "$SDK" "$JAVA" > "$HOME/.config/godot/editor_settings-4.4.tres"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
