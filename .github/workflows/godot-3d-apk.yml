@@ -21,7 +21,7 @@ jobs:
           set -euxo pipefail
           godot --version
           apt-get update
-          apt-get install -y --no-install-recommends curl unzip
+          apt-get install -y --no-install-recommends curl unzip python3
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable" "$HOME/.android" godot3d/build
           if [ ! -f "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk" ]; then
             curl -fL --retry 3 -o /tmp/godot_templates.tpz "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz"
