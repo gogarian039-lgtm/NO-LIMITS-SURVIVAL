@@ -39,6 +39,11 @@ public class MainActivity extends Activity {
         float stickX, stickY, lookX, lookY;
         int stickId = -1, lookId = -1;
         boolean thirdPerson = false;
+        int wood = 0, stone = 0;
+        final float[][] resources = {{2.5f,2.5f,0},{7.5f,3.5f,0},{10.5f,4.5f,1},{4.5f,7.5f,1},{12.5f,9.5f,0},{8.5f,12.5f,1},{3.5f,12.5f,0}};
+        final boolean[] collected = new boolean[7];
+        String notice = "";
+        long noticeUntil = 0;
         long previous = System.nanoTime();
         WorldView() { super(MainActivity.this); setFocusable(true); }
 
@@ -51,6 +56,23 @@ public class MainActivity extends Activity {
             float radius = 0.18f;
             if (!blocked(px + dx + Math.signum(dx)*radius, py)) px += dx;
             if (!blocked(px, py + dy + Math.signum(dy)*radius)) py += dy;
+        }
+        int nearestResource() {
+            int best=-1; float distance=1.25f;
+            for(int i=0;i<resources.length;i++) {
+                if(collected[i])continue;
+                float dx=resources[i][0]-px,dy=resources[i][1]-py;
+                float d=(float)Math.sqrt(dx*dx+dy*dy);
+                if(d<distance){distance=d;best=i;}
+            }
+            return best;
+        }
+        void collect() {
+            int i=nearestResource();
+            if(i<0){notice="Move closer to a resource";noticeUntil=System.currentTimeMillis()+1500;return;}
+            collected[i]=true;
+            if(resources[i][2]==0){wood++;notice="+1 WOOD";}else{stone++;notice="+1 STONE";}
+            noticeUntil=System.currentTimeMillis()+1500;
         }
         void fill(Canvas c, int color, float l, float t, float r, float b) {
             paint.setColor(color); paint.setStyle(Paint.Style.FILL);
@@ -100,6 +122,46 @@ public class MainActivity extends Activity {
                 int color=Color.rgb((int)(shade*0.62),(int)(shade*0.68),(int)(shade*0.57));
                 fill(c,color,x,horizon-height/2,x+step+1,horizon+height/2);
             }
+            // Draw resource markers with simple perspective, from farthest to nearest.
+            for(int pass=0;pass<resources.length;pass++) {
+                int best=-1;double far=-1;
+                for(int i=0;i<resources.length;i++) {
+                    if(collected[i])continue;
+                    double dx=resources[i][0]-px,dy=resources[i][1]-py;
+                    double d=dx*dx+dy*dy;
+                    // Each pass uses a distance threshold to draw far objects first.
+                    int farther=0;
+                    for(int j=0;j<resources.length;j++)if(!collected[j]) {
+                        double jx=resources[j][0]-px,jy=resources[j][1]-py;
+                        if(jx*jx+jy*jy>d)farther++;
+                    }
+                    if(farther==pass){best=i;far=d;break;}
+                }
+                if(best<0)continue;
+                double dx=resources[best][0]-px,dy=resources[best][1]-py;
+                double depth=dx*Math.cos(angle)+dy*Math.sin(angle);
+                double side=-dx*Math.sin(angle)+dy*Math.cos(angle);
+                if(depth<0.3||depth>18)continue;
+                double projected=side/(depth*Math.tan(fov/2));
+                if(Math.abs(projected)>1.15)continue;
+                // Occlude markers if a wall is between the player and resource.
+                boolean hidden=false;
+                double dist=Math.sqrt(far);
+                for(double d=0.12;d<dist-0.15;d+=0.08)
+                    if(blocked((float)(px+dx*d/dist),(float)(py+dy*d/dist))){hidden=true;break;}
+                if(hidden)continue;
+                float screenX=(float)(w*(0.5+projected*0.5));
+                float size=(float)Math.min(h*0.32,h*0.37/depth);
+                float bottom=horizon+size*0.8f;
+                if(resources[best][2]==0) {
+                    fill(c,0xff76512c,screenX-size*0.10f,bottom-size*0.6f,screenX+size*0.10f,bottom);
+                    circle(c,0xff246c32,screenX,bottom-size*0.75f,size*0.34f);
+                    circle(c,0xff358343,screenX-size*0.17f,bottom-size*0.65f,size*0.26f);
+                } else {
+                    circle(c,0xff777f88,screenX,bottom-size*0.16f,size*0.27f);
+                    circle(c,0xffa6abb0,screenX-size*0.07f,bottom-size*0.24f,size*0.14f);
+                }
+            }
             // Crosshair and optional third-person avatar overlay.
             float cx=w/2f,cy=horizon;
             fill(c,Color.WHITE,cx-9,cy-1,cx+9,cy+1);
@@ -117,6 +179,13 @@ public class MainActivity extends Activity {
             fill(c,0x99505050,w-155,24,w-16,82);
             label(c,thirdPerson?"CAM: 3RD":"CAM: 1ST",w-147,62,Math.max(14,w*0.035f));
             label(c,"NO LIMITS SURVIVAL",18,44,Math.max(19,w*0.05f));
+            label(c,"WOOD: "+wood+"   STONE: "+stone,18,80,Math.max(15,w*0.035f));
+            if(System.currentTimeMillis()<noticeUntil)
+                label(c,notice,18,115,Math.max(16,w*0.04f));
+            fill(c,0xaa245d34,w-150,h-195,w-16,h-125);
+            label(c,"PICK UP",w-140,h-150,Math.max(14,w*0.036f));
+            if(nearestResource()>=0)
+                label(c,"Resource nearby!",18,h-75,Math.max(15,w*0.036f));
             label(c,"Explore the world  |  Left: move  Right: look",18,h-20,Math.max(12,w*0.027f));
             postInvalidateDelayed(16);
         }
@@ -124,6 +193,7 @@ public class MainActivity extends Activity {
             int action=e.getActionMasked(),index=e.getActionIndex();
             if(action==MotionEvent.ACTION_DOWN||action==MotionEvent.ACTION_POINTER_DOWN) {
                 int id=e.getPointerId(index),x=(int)e.getX(index),y=(int)e.getY(index);
+                if(x>getWidth()-170&&y>getHeight()-215&&y<getHeight()-105) {collect();invalidate();return true;}
                 if(x>getWidth()-170&&y<100) {
                     thirdPerson=!thirdPerson;invalidate();return true;
                 }
