@@ -19,13 +19,7 @@ jobs:
       - name: Export Android debug APK
         run: |
           mkdir -p godot/build
-          docker run --rm barichello/godot-ci:4.3 sh -lc 'ls -la /usr/lib/android-sdk; ls -la /usr/lib/android-sdk/build-tools; ls -la /root/.android; find /root /home -name "*.keystore" 2>/dev/null | head -20; env | grep -E "ANDROID|GODOT" || true'
-          docker run --rm -v "$PWD/godot:/project" -w /project barichello/godot-ci:4.3 sh -lc '
-            mkdir -p /root/.config/godot /root/.android
-            keytool -genkeypair -v -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-            printf '%s\n' '[gd_resource type="EditorSettings" format=3]' '' '[resource]' 'export/android/android_sdk_path = "/usr/lib/android-sdk"' 'export/android/debug_keystore = "/root/.android/debug.keystore"' 'export/android/debug_keystore_user = "androiddebugkey"' 'export/android/debug_keystore_pass = "android"' > /root/.config/godot/editor_settings-4.tres
-            godot --headless --path /project --export-debug Android build/NO-LIMITS-SURVIVAL-3D-debug.apk
-          '
+          docker run --rm -v "$PWD/godot:/project" -w /project barichello/godot-ci:4.3 sh /project/ci-export.sh
           test -s godot/build/NO-LIMITS-SURVIVAL-3D-debug.apk
           ls -lh godot/build/*.apk
       - uses: actions/upload-artifact@v4
