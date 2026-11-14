@@ -65,7 +65,7 @@ jobs:
         shell: bash
         run: |
           godot --headless --path godot3d --editor --import
-          godot --headless --path godot3d --editor --script res://ci_android_setup.gd
+          timeout 45s godot --headless --path godot3d --editor --script res://ci_android_setup.gd
       - name: Export debug APK
         shell: bash
         run: |
