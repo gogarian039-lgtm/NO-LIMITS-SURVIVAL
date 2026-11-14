@@ -14,9 +14,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Print exact source revision
+        run: |
+          echo "Building commit: $GITHUB_SHA"
+          git log -1 --format='%h %s'
+          grep 'versionName' app/build.gradle
+          grep -n 'PICK UP' app/src/main/java/com/nolimits/survival/MainActivity.java
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
+      - name: Record APK provenance
+        run: |
+          mkdir -p apk-release
+          cp app/build/outputs/apk/debug/app-debug.apk apk-release/NO-LIMITS-SURVIVAL-1.1-resources.apk
+          printf 'Commit: %s\nVersion: 1.1-resources\nPackage: com.nolimits.survival\n' "$GITHUB_SHA" > apk-release/BUILD-INFO.txt
+          sha256sum apk-release/*.apk >> apk-release/BUILD-INFO.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: NO-LIMITS-SURVIVAL-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: NO-LIMITS-SURVIVAL-1.1-resources-${{ github.run_number }}
+          path: apk-release/
+          if-no-files-found: error
