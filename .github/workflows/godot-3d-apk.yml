@@ -129,7 +129,7 @@ jobs:
               settings.save()
               quit()
           GDSCRIPT
-          godot --headless --path godot3d --editor --script res://ci_export_diagnostics.gd
+          timeout --signal=TERM --kill-after=5s 45s godot --headless --path godot3d --editor --script res://ci_export_diagnostics.gd
           rm -f godot3d/ci_export_diagnostics.gd
 
       - name: Export debug APK
