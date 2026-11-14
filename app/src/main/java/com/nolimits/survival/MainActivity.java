@@ -20,28 +20,25 @@ public class MainActivity extends Activity {
     // Lightweight first-person 3D raycaster; no external engine or assets required.
     final class WorldView extends View {
         final Paint paint = new Paint(3);
-        final String[] map = {
-            "1111111111111111",
-            "1000000000000001",
-            "1000000000000001",
-            "1000011000000001",
-            "1000010000000001",
-            "1000000000000001",
-            "1000000001100001",
-            "1000000001000001",
-            "1000000000000001",
-            "1001100000000001",
-            "1000000000000001",
-            "1000000000011001",
-            "1000000000000001",
-            "1000000000000001",
-            "1000000000000001",
-            "1111111111111111"
-        };
+        final String[] map = generateMap();
+        String[] generateMap() {
+            String[] world = new String[72];
+            java.util.Random random = new java.util.Random(20261114L);
+            for (int y=0;y<72;y++) {
+                StringBuilder line=new StringBuilder();
+                for(int x=0;x<72;x++) {
+                    boolean border=x==0||y==0||x==71||y==71;
+                    boolean obstacle=x>5&&y>5&&random.nextFloat()<0.032f;
+                    line.append(border||obstacle?'1':'0');
+                }
+                world[y]=line.toString();
+            }
+            return world;
+        }
         float px = 3.5f, py = 3.5f, angle = 0.35f;
         float stickX, stickY, lookX, lookY;
         int stickId = -1, lookId = -1;
-        boolean thirdPerson = false;
+        boolean thirdPerson = false, inventoryOpen = false, sprint = false;
         int wood = 0, stone = 0;
         float health=100f, hunger=100f, thirst=100f;
         float survivalSeconds=0f;
@@ -104,6 +101,20 @@ public class MainActivity extends Activity {
         float pickupTop() { return getHeight()-Math.max(dp(110),getHeight()*0.13f)-buttonHeight(); }
         float cameraLeft() { return getWidth()-hudMargin()-buttonWidth(); }
         float cameraTop() { return hudMargin(); }
+        float inventoryTop(){return cameraTop()+buttonHeight()+dp(12);}
+        float sprintTop(){return inventoryTop()+buttonHeight()+dp(12);}
+        void drawMiniMap(Canvas c) {
+            float cell=dp(5), left=getWidth()-dp(132), top=sprintTop()+buttonHeight()+dp(18);
+            fill(c,0xaa122521,left-dp(5),top-dp(5),left+dp(115),top+dp(115));
+            for(int yy=-10;yy<=10;yy++)for(int xx=-10;xx<=10;xx++){
+                int mx=(int)px+xx,my=(int)py+yy;
+                if(blocked(mx+0.5f,my+0.5f))
+                    fill(c,0xff88918a,left+(xx+10)*cell,top+(yy+10)*cell,left+(xx+11)*cell,top+(yy+11)*cell);
+            }
+            circle(c,0xffffd25e,left+dp(52.5f),top+dp(52.5f),dp(4));
+            paint.setColor(0xffffd25e);paint.setStrokeWidth(dp(2));
+            c.drawLine(left+dp(52.5f),top+dp(52.5f),left+dp(52.5f)+(float)Math.cos(angle)*dp(13),top+dp(52.5f)+(float)Math.sin(angle)*dp(13),paint);
+        }
         void fill(Canvas c, int color, float l, float t, float r, float b) {
             paint.setColor(color); paint.setStyle(Paint.Style.FILL);
             c.drawRect(l,t,r,b,paint);
@@ -132,7 +143,7 @@ public class MainActivity extends Activity {
                 if(hunger<=0||thirst<=0)health=Math.max(0,health-dt*2.0f);
                 if(health<=0){alive=false;stickX=stickY=lookX=lookY=0;notice="You did not survive";noticeUntil=Long.MAX_VALUE;}
             }
-            float speed=alive?2.8f*dt:0f;
+            float speed=alive?(sprint?4.8f:2.8f)*dt:0f;
             move((float)(Math.cos(angle)*forward-Math.sin(angle)*strafe)*speed,
                  (float)(Math.sin(angle)*forward+Math.cos(angle)*strafe)*speed);
             angle += lookX*dt*1.9f;
@@ -240,6 +251,18 @@ public class MainActivity extends Activity {
                   cameraTop()+buttonHeight()*0.60f,smallSize);
             fill(c,0xbb245d34,pickupLeft(),pickupTop(),w-hudMargin(),pickupTop()+buttonHeight());
             label(c,alive?"PICK UP":"RESTART",pickupLeft()+dp(9),pickupTop()+buttonHeight()*0.62f,smallSize);
+            fill(c,0xaa303c44,cameraLeft(),inventoryTop(),w-hudMargin(),inventoryTop()+buttonHeight());
+            label(c,"BAG",cameraLeft()+dp(9),inventoryTop()+buttonHeight()*0.60f,smallSize);
+            fill(c,0xaa345b48,cameraLeft(),sprintTop(),w-hudMargin(),sprintTop()+buttonHeight());
+            label(c,sprint?"RUN: ON":"RUN: OFF",cameraLeft()+dp(9),sprintTop()+buttonHeight()*0.60f,smallSize);
+            drawMiniMap(c);
+            if(inventoryOpen) {
+                float panelL=dp(30),panelT=h*0.35f,panelR=w-dp(30),panelB=h*0.65f;
+                fill(c,0xee142b26,panelL,panelT,panelR,panelB);
+                label(c,"INVENTORY (tap BAG to close)",panelL+dp(14),panelT+dp(35),smallSize);
+                label(c,"Wood: "+wood+"    Stone: "+stone,panelL+dp(14),panelT+dp(75),smallSize);
+                label(c,"Explore and collect resources",panelL+dp(14),panelT+dp(115),smallSize);
+            }
             if(nearestResource()>=0)
                 label(c,"Resource nearby!",left,h-dp(52),smallSize);
             postInvalidateDelayed(16);
@@ -251,6 +274,12 @@ public class MainActivity extends Activity {
                 if(x>=pickupLeft()&&x<=getWidth()-hudMargin()&&y>=pickupTop()&&y<=pickupTop()+buttonHeight()) {collect();invalidate();return true;}
                 if(x>=cameraLeft()&&x<=getWidth()-hudMargin()&&y>=cameraTop()&&y<=cameraTop()+buttonHeight()) {
                     thirdPerson=!thirdPerson;invalidate();return true;
+                }
+                if(x>=cameraLeft()&&x<=getWidth()-hudMargin()&&y>=inventoryTop()&&y<=inventoryTop()+buttonHeight()) {
+                    inventoryOpen=!inventoryOpen;invalidate();return true;
+                }
+                if(x>=cameraLeft()&&x<=getWidth()-hudMargin()&&y>=sprintTop()&&y<=sprintTop()+buttonHeight()) {
+                    sprint=!sprint;invalidate();return true;
                 }
                 if(x<getWidth()*0.5f&&stickId==-1)stickId=id;
                 else if(lookId==-1)lookId=id;
