@@ -12,6 +12,9 @@ var move_touch_id := -1
 var move_start := Vector2.ZERO
 var look_last := Vector2.ZERO
 var jump_requested := false
+var sprinting := false
+var move_indicator: Label
+var move_knob: Label
 var hud: CanvasLayer
 var player_mesh: MeshInstance3D
 var supplies := 0
@@ -161,6 +164,27 @@ func _build_hud() -> void:
 	jump.size = Vector2(140, 80)
 	jump.pressed.connect(func(): jump_requested = true)
 	root.add_child(jump)
+	var sprint := Button.new()
+	sprint.text = "RUN: OFF"
+	sprint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	sprint.position = Vector2(-320, -125)
+	sprint.size = Vector2(145, 80)
+	sprint.pressed.connect(func(): sprinting = not sprinting; sprint.text = "RUN: ON" if sprinting else "RUN: OFF")
+	root.add_child(sprint)
+	move_indicator = Label.new()
+	move_indicator.text = "◯"
+	move_indicator.add_theme_font_size_override("font_size", 75)
+	move_indicator.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	move_indicator.position = Vector2(65, -165)
+	move_indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(move_indicator)
+	move_knob = Label.new()
+	move_knob.text = "●"
+	move_knob.add_theme_font_size_override("font_size", 36)
+	move_knob.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	move_knob.position = Vector2(94, -137)
+	move_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(move_knob)
 	var hint := Label.new()
 	hint.text = "LEFT: MOVE     RIGHT: LOOK"
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -180,12 +204,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.index == move_touch_id:
 				move_touch_id = -1
 				move_touch = Vector2.ZERO
+				if move_knob != null:
+					move_knob.position = Vector2(94, -137)
 			if event.index == look_touch_id:
 				look_touch_id = -1
 	if event is InputEventScreenDrag:
 		if event.index == move_touch_id:
 			move_touch = (event.position - move_start) / 90.0
 			move_touch = move_touch.limit_length(1.0)
+			if move_knob != null:
+				move_knob.position = Vector2(94, -137) + move_touch * 32.0
 		if event.index == look_touch_id:
 			var drag_delta: Vector2 = event.position - look_last
 			yaw -= drag_delta.x * 0.004
@@ -202,8 +230,8 @@ func _physics_process(delta: float) -> void:
 	input_vector += Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	input_vector = input_vector.limit_length(1.0)
 	var direction := player.global_transform.basis * Vector3(input_vector.x, 0, input_vector.y)
-	player.velocity.x = direction.x * 6.0
-	player.velocity.z = direction.z * 6.0
+	player.velocity.x = direction.x * (9.0 if sprinting else 6.0)
+	player.velocity.z = direction.z * (9.0 if sprinting else 6.0)
 	if not player.is_on_floor():
 		player.velocity.y -= 18.0 * delta
 	elif jump_requested or Input.is_action_just_pressed("ui_accept"):
