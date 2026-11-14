@@ -1,0 +1,36 @@
+name: Build NO LIMITS SURVIVAL 3D APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [godot-3d-open-world]
+    paths:
+      - 'godot3d/**'
+      - '.github/workflows/godot-3d-apk.yml'
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Android SDK paths and debug keystore
+        shell: bash
+        run: |
+          set -eux
+          mkdir -p "$HOME/.config/godot" godot3d/build "$HOME/.android"
+          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+      - name: Import and check project
+        run: godot --headless --path godot3d --editor --quit
+      - name: Export debug APK
+        run: godot --headless --path godot3d --export-debug Android build/NO-LIMITS-SURVIVAL-3D.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NO-LIMITS-SURVIVAL-3D-APK
+          path: godot3d/build/NO-LIMITS-SURVIVAL-3D.apk
+          if-no-files-found: error
