@@ -63,7 +63,9 @@ jobs:
           keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Import Godot project
         shell: bash
-        run: |\n          godot --headless --path godot3d --editor --import\n          godot --headless --path godot3d --editor --script res://ci_android_setup.gd
+        run: |
+          godot --headless --path godot3d --editor --import
+          godot --headless --path godot3d --editor --script res://ci_android_setup.gd
       - name: Export debug APK
         shell: bash
         run: |
