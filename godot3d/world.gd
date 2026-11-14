@@ -19,6 +19,7 @@ var supplies_label: Label
 
 func _ready() -> void:
 	_build_world()
+	_add_world_details()
 	_build_player()
 	_build_hud()
 	_build_supplies()
@@ -71,6 +72,29 @@ func _build_world() -> void:
 			continue
 		_box(Vector3(x, 1.5, z), Vector3(0.6, 3, 0.6), Color(0.32, 0.22, 0.12))
 		_box(Vector3(x, 3.5, z), Vector3(3, 3, 3), Color(0.13, 0.32, 0.15), false)
+
+
+# Stage 1: lightweight environmental detail using the existing mobile-friendly meshes.
+func _add_world_details() -> void:
+	# Broken lane markings make the main road readable from either camera mode.
+	for i in range(20):
+		var z := -95.0 + float(i) * 10.0
+		_box(Vector3(0, 0.043, z), Vector3(0.15, 0.025, 4.0), Color(0.88, 0.82, 0.58), false)
+	# Roadside posts and a small ruined checkpoint.
+	for i in range(16):
+		var z := -88.0 + float(i) * 12.0
+		for side in [-1.0, 1.0]:
+			_box(Vector3(side * 5.0, 0.65, z), Vector3(0.2, 1.3, 0.2), Color(0.7, 0.7, 0.65), false)
+			_box(Vector3(side * 5.0, 1.2, z), Vector3(0.26, 0.16, 0.26), Color(0.92, 0.48, 0.15), false)
+	_box(Vector3(11, 1.5, 10), Vector3(5.5, 3, 4.5), Color(0.34, 0.37, 0.37))
+	_box(Vector3(11, 3.2, 10), Vector3(6.2, 0.4, 5.2), Color(0.22, 0.25, 0.25))
+	# Decorative windows and doors are visual-only to keep collisions simple.
+	_box(Vector3(11, 1.2, 7.73), Vector3(1.3, 2.1, 0.07), Color(0.12, 0.16, 0.18), false)
+	_box(Vector3(9.1, 2.0, 7.73), Vector3(0.9, 0.8, 0.07), Color(0.18, 0.29, 0.34), false)
+	_box(Vector3(12.9, 2.0, 7.73), Vector3(0.9, 0.8, 0.07), Color(0.18, 0.29, 0.34), false)
+	# A landmark visible near the spawn point.
+	_box(Vector3(-10, 2.4, 5), Vector3(0.45, 4.8, 0.45), Color(0.32, 0.32, 0.3))
+	_box(Vector3(-10, 4.7, 5), Vector3(3.2, 0.8, 0.25), Color(0.55, 0.26, 0.17), false)
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
