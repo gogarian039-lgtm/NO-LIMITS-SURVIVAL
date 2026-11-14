@@ -1,0 +1,29 @@
+name: Build Godot 3D Android APK
+on:
+  push:
+    branches: [godot-3d-foundation]
+    paths:
+      - 'godot/**'
+      - '.github/workflows/godot-android.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import Godot resources
+        run: |
+          docker run --rm -v "$PWD/godot:/project" -w /project barichello/godot-ci:4.3 godot --headless --editor --path /project --import --quit
+      - name: Export Android debug APK
+        run: |
+          mkdir -p godot/build
+          docker run --rm -v "$PWD/godot:/project" -w /project barichello/godot-ci:4.3 godot --headless --path /project --export-debug Android build/NO-LIMITS-SURVIVAL-3D-debug.apk
+          test -s godot/build/NO-LIMITS-SURVIVAL-3D-debug.apk
+          ls -lh godot/build/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NO-LIMITS-SURVIVAL-GODOT-3D-debug
+          path: godot/build/*.apk
+          if-no-files-found: error
