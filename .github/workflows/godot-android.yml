@@ -19,7 +19,8 @@ jobs:
       - name: Export Android debug APK
         run: |
           mkdir -p godot/build
-          docker run --rm -v "$PWD/godot:/project" -w /project barichello/godot-ci:4.3 godot --headless --path /project --export-debug Android build/NO-LIMITS-SURVIVAL-3D-debug.apk
+          docker run --rm barichello/godot-ci:4.3 sh -lc 'echo ANDROID_HOME=$ANDROID_HOME; echo ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT; ls -la /root/.local/share/godot/export_templates/ 2>/dev/null || true; ls -la /opt/android-sdk/build-tools/ 2>/dev/null || true; env | grep -E "ANDROID|GODOT" || true'
+          docker run --rm -v "$PWD/godot:/project" -w /project barichello/godot-ci:4.3 godot --headless --verbose --path /project --export-debug Android build/NO-LIMITS-SURVIVAL-3D-debug.apk
           test -s godot/build/NO-LIMITS-SURVIVAL-3D-debug.apk
           ls -lh godot/build/*.apk
       - uses: actions/upload-artifact@v4
