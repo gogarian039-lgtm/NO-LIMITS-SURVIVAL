@@ -79,6 +79,11 @@ jobs:
           }
           settings.write_text('[gd_resource type="EditorSettings" format=3]\n\n[resource]\n' + ''.join(k + ' = ' + json.dumps(v) + '\n' for k, v in options.items()))
           print(settings.read_text())
+          preset = Path("godot3d/export_presets.cfg")
+          data = preset.read_text()
+          data = data.replace('keystore/debug=""', 'keystore/debug="' + keystore + '"')
+          preset.write_text(data)
+          print("Configured Android debug keystore:", keystore)
           PY
 
       - name: Import Godot project
@@ -95,9 +100,25 @@ jobs:
           ls -la "$ANDROID_HOME/build-tools"
           ls -la "$ANDROID_HOME/platforms"
           cd godot3d
-          godot --headless --verbose --path . --export-debug Android build/NO-LIMITS-SURVIVAL-3D.apk
+          set +e
+          godot --headless --verbose --path . --export-debug Android build/NO-LIMITS-SURVIVAL-3D.apk 2>&1 | tee build/export.log
+          result=${PIPESTATUS[0]}
+          set -e
+          if [ "$result" -ne 0 ]; then
+            echo "::error::Godot Android export failed (exit $result). Relevant diagnostics:"
+            grep -Ei "error|failed|invalid|missing|cannot|could not" build/export.log | tail -60 || true
+            exit "$result"
+          fi
           test -s build/NO-LIMITS-SURVIVAL-3D.apk
           ls -lh build/NO-LIMITS-SURVIVAL-3D.apk
+
+      - name: Upload export diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-export-diagnostics
+          path: godot3d/build/export.log
+          if-no-files-found: ignore
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
