@@ -15,29 +15,42 @@ jobs:
       image: barichello/godot-ci:4.4.1
     steps:
       - uses: actions/checkout@v4
-      - name: Check Android export environment
+      - name: Install export templates and locate Android toolchain
         shell: bash
         run: |
           set -euxo pipefail
           godot --version
-          command -v keytool
-          echo "ANDROID_HOME=${ANDROID_HOME:-}"
-          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-}"
-          ls -la /root/.local/share/godot/export_templates || true
-          mkdir -p godot3d/build /root/.android
-      - name: Configure Godot Android export
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable" "$HOME/.android" godot3d/build
+          if [ ! -f "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk" ]; then
+            curl -fL --retry 3 -o /tmp/godot_templates.tpz "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz"
+            unzip -oq /tmp/godot_templates.tpz 'templates/android_debug.apk' 'templates/android_release.apk' -d /tmp/godot-export
+            cp /tmp/godot-export/templates/android_*.apk "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          fi
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$SDK" ]; then
+            for candidate in /opt/android-sdk /opt/android-sdk-linux /usr/local/lib/android/sdk /usr/local/android-sdk; do
+              if [ -d "$candidate/platforms" ]; then SDK="$candidate"; break; fi
+            done
+          fi
+          test -n "$SDK"
+          test -d "$SDK/platforms"
+          JAVA="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          test -d "$JAVA"
+          echo "GODOT_ANDROID_SDK_PATH=$SDK" >> "$GITHUB_ENV"
+          echo "GODOT_JAVA_SDK_PATH=$JAVA" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+          ls -lh "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          ls "$SDK/build-tools" || true
+      - name: Create Android debug signing key
         shell: bash
         run: |
           set -euxo pipefail
-          keytool -genkeypair -keystore /root/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          mkdir -p /root/.config/godot
-          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/opt/android-sdk}}"
-          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/debug_keystore = "/root/.android/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\n' "$SDK" > /root/.config/godot/editor_settings-4.tres
+          keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Import Godot project
         shell: bash
-        run: |
-          set -euxo pipefail
-          godot --headless --path godot3d --editor --import
+        run: godot --headless --path godot3d --editor --import
       - name: Export debug APK
         shell: bash
         run: |
