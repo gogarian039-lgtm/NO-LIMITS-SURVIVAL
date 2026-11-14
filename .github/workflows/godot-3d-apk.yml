@@ -78,13 +78,18 @@ jobs:
         shell: bash
         run: |
           godot --headless --path godot3d --editor --import
-          echo "Godot import complete; SDK settings persisted before export"
+          echo "Godot import complete"
       - name: Export debug APK
         shell: bash
         run: |
           set -euxo pipefail
+          echo "Android SDK path: $GODOT_ANDROID_SDK_PATH"
+          echo "Java SDK path: $GODOT_JAVA_SDK_PATH"
+          cat "$HOME/.config/godot/editor_settings-4.4.tres"
+          ls -la "$GODOT_ANDROID_SDK_PATH/build-tools"
+          ls -la "$GODOT_ANDROID_SDK_PATH/platforms"
           cd godot3d
-          godot --headless --path . --export-debug Android build/NO-LIMITS-SURVIVAL-3D.apk
+          godot --headless --verbose --path . --export-debug Android build/NO-LIMITS-SURVIVAL-3D.apk
           test -s build/NO-LIMITS-SURVIVAL-3D.apk
           ls -lh build/NO-LIMITS-SURVIVAL-3D.apk
       - name: Upload APK
