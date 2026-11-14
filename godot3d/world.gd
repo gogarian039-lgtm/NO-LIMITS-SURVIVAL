@@ -13,11 +13,15 @@ var move_start := Vector2.ZERO
 var look_last := Vector2.ZERO
 var jump_requested := false
 var hud: CanvasLayer
+var player_mesh: MeshInstance3D
+var supplies := 0
+var supplies_label: Label
 
 func _ready() -> void:
 	_build_world()
 	_build_player()
 	_build_hud()
+	_build_supplies()
 
 func _box(pos: Vector3, size: Vector3, color: Color, solid := true) -> Node3D:
 	var mesh := MeshInstance3D.new()
@@ -89,6 +93,7 @@ func _build_player() -> void:
 	mat.albedo_color = Color(0.1, 0.55, 0.8)
 	body.material_override = mat
 	player.add_child(body)
+	player_mesh = body
 	pivot = Node3D.new()
 	pivot.position.y = 1.55
 	player.add_child(pivot)
@@ -99,6 +104,7 @@ func _build_player() -> void:
 
 func _update_camera() -> void:
 	camera.position = Vector3(0, 0.35, 4.0) if camera_third else Vector3(0, 0, -0.15)
+	player_mesh.visible = camera_third
 
 func _build_hud() -> void:
 	hud = CanvasLayer.new()
@@ -112,6 +118,11 @@ func _build_hud() -> void:
 	title.position = Vector2(20, 16)
 	title.add_theme_font_size_override("font_size", 23)
 	root.add_child(title)
+	supplies_label = Label.new()
+	supplies_label.text = "SUPPLIES: 0 / 12"
+	supplies_label.position = Vector2(20, 55)
+	supplies_label.add_theme_font_size_override("font_size", 23)
+	root.add_child(supplies_label)
 	var button := Button.new()
 	button.text = "FPS / TPS"
 	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -175,3 +186,34 @@ func _physics_process(delta: float) -> void:
 		player.velocity.y = 7.0
 	jump_requested = false
 	player.move_and_slide()
+
+func _build_supplies() -> void:
+	for i in range(12):
+		var pickup := Area3D.new()
+		var x := float((i * 19) % 38 - 19)
+		var z := float((i * 23) % 85 - 42)
+		if abs(x) < 5:
+			x += 8.0
+		pickup.position = Vector3(x, 0.7, z)
+		var visual := MeshInstance3D.new()
+		var shape := BoxMesh.new()
+		shape.size = Vector3(0.65, 0.65, 0.65)
+		visual.mesh = shape
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(1.0, 0.75, 0.15)
+		visual.material_override = material
+		pickup.add_child(visual)
+		var collision := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(1.3, 1.5, 1.3)
+		collision.shape = box
+		pickup.add_child(collision)
+		add_child(pickup)
+		pickup.body_entered.connect(_collect_supply.bind(pickup))
+
+func _collect_supply(body: Node3D, pickup: Area3D) -> void:
+	if body != player:
+		return
+	supplies += 1
+	supplies_label.text = "SUPPLIES: %d / 12" % supplies
+	pickup.queue_free()
