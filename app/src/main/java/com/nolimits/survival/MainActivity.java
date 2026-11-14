@@ -7,10 +7,13 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowInsets;
+import android.os.Build;
 
 public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
         setContentView(new WorldView());
     }
 
@@ -74,6 +77,14 @@ public class MainActivity extends Activity {
             if(resources[i][2]==0){wood++;notice="+1 WOOD";}else{stone++;notice="+1 STONE";}
             noticeUntil=System.currentTimeMillis()+1500;
         }
+        float dp(float value) { return value * getResources().getDisplayMetrics().density; }
+        float hudMargin() { return dp(14); }
+        float buttonWidth() { return Math.min(dp(116), getWidth()*0.29f); }
+        float buttonHeight() { return dp(56); }
+        float pickupLeft() { return getWidth()-hudMargin()-buttonWidth(); }
+        float pickupTop() { return getHeight()-Math.max(dp(110),getHeight()*0.13f)-buttonHeight(); }
+        float cameraLeft() { return getWidth()-hudMargin()-buttonWidth(); }
+        float cameraTop() { return hudMargin(); }
         void fill(Canvas c, int color, float l, float t, float r, float b) {
             paint.setColor(color); paint.setStyle(Paint.Style.FILL);
             c.drawRect(l,t,r,b,paint);
@@ -172,29 +183,34 @@ public class MainActivity extends Activity {
                 fill(c,0xff26313b,cx-w*0.045f,h*0.87f,cx-w*0.008f,h*0.99f);
                 fill(c,0xff26313b,cx+w*0.008f,h*0.87f,cx+w*0.045f,h*0.99f);
             }
-            float base=Math.min(w,h)*0.14f;
-            circle(c,0x66404040,base*1.3f,h-base*1.35f,base);
-            circle(c,0x99ffffff,base*1.3f+stickX*base*0.55f,
-                   h-base*1.35f+stickY*base*0.55f,base*0.36f);
-            fill(c,0x99505050,w-155,24,w-16,82);
-            label(c,thirdPerson?"CAM: 3RD":"CAM: 1ST",w-147,62,Math.max(14,w*0.035f));
-            label(c,"NO LIMITS SURVIVAL",18,44,Math.max(19,w*0.05f));
-            label(c,"WOOD: "+wood+"   STONE: "+stone,18,80,Math.max(15,w*0.035f));
+            float base=Math.min(w*0.17f,h*0.105f);
+            float stickCx=base+hudMargin(),stickCy=h-base-hudMargin()-dp(22);
+            circle(c,0x66404040,stickCx,stickCy,base);
+            circle(c,0x99ffffff,stickCx+stickX*base*0.55f,
+                   stickCy+stickY*base*0.55f,base*0.36f);
+            float left=hudMargin(), top=hudMargin();
+            float titleSize=Math.min(dp(18),w*0.042f);
+            float smallSize=Math.min(dp(15),w*0.036f);
+            fill(c,0x990d2518,left-dp(5),top-dp(5),Math.min(w*0.60f,dp(265)),top+dp(74));
+            label(c,"NO LIMITS SURVIVAL",left,top+dp(20),titleSize);
+            label(c,"WOOD: "+wood+"   STONE: "+stone,left,top+dp(48),smallSize);
             if(System.currentTimeMillis()<noticeUntil)
-                label(c,notice,18,115,Math.max(16,w*0.04f));
-            fill(c,0xaa245d34,w-150,h-195,w-16,h-125);
-            label(c,"PICK UP",w-140,h-150,Math.max(14,w*0.036f));
+                label(c,notice,left,top+dp(97),smallSize);
+            fill(c,0xaa303c44,cameraLeft(),cameraTop(),w-hudMargin(),cameraTop()+buttonHeight());
+            label(c,thirdPerson?"CAM: 3RD":"CAM: 1ST",cameraLeft()+dp(9),
+                  cameraTop()+buttonHeight()*0.60f,smallSize);
+            fill(c,0xbb245d34,pickupLeft(),pickupTop(),w-hudMargin(),pickupTop()+buttonHeight());
+            label(c,"PICK UP",pickupLeft()+dp(12),pickupTop()+buttonHeight()*0.62f,smallSize);
             if(nearestResource()>=0)
-                label(c,"Resource nearby!",18,h-75,Math.max(15,w*0.036f));
-            label(c,"Explore the world  |  Left: move  Right: look",18,h-20,Math.max(12,w*0.027f));
+                label(c,"Resource nearby!",left,h-dp(52),smallSize);
             postInvalidateDelayed(16);
         }
         @Override public boolean onTouchEvent(MotionEvent e) {
             int action=e.getActionMasked(),index=e.getActionIndex();
             if(action==MotionEvent.ACTION_DOWN||action==MotionEvent.ACTION_POINTER_DOWN) {
                 int id=e.getPointerId(index),x=(int)e.getX(index),y=(int)e.getY(index);
-                if(x>getWidth()-170&&y>getHeight()-215&&y<getHeight()-105) {collect();invalidate();return true;}
-                if(x>getWidth()-170&&y<100) {
+                if(x>=pickupLeft()&&x<=getWidth()-hudMargin()&&y>=pickupTop()&&y<=pickupTop()+buttonHeight()) {collect();invalidate();return true;}
+                if(x>=cameraLeft()&&x<=getWidth()-hudMargin()&&y>=cameraTop()&&y<=cameraTop()+buttonHeight()) {
                     thirdPerson=!thirdPerson;invalidate();return true;
                 }
                 if(x<getWidth()*0.5f&&stickId==-1)stickId=id;
@@ -213,9 +229,10 @@ public class MainActivity extends Activity {
             for(int i=0;i<e.getPointerCount();i++) {
                 int id=e.getPointerId(i);
                 if(id==stickId) {
-                    float base=Math.min(getWidth(),getHeight())*0.14f;
-                    stickX=Math.max(-1,Math.min(1,(e.getX(i)-base*1.3f)/base));
-                    stickY=Math.max(-1,Math.min(1,(e.getY(i)-(getHeight()-base*1.35f))/base));
+                    float base=Math.min(getWidth()*0.17f,getHeight()*0.105f);
+                    float cx=base+hudMargin(),cy=getHeight()-base-hudMargin()-dp(22);
+                    stickX=Math.max(-1,Math.min(1,(e.getX(i)-cx)/base));
+                    stickY=Math.max(-1,Math.min(1,(e.getY(i)-cy)/base));
                 } else if(id==lookId) {
                     lookX=Math.max(-1,Math.min(1,(e.getX(i)-getWidth()*0.75f)/(getWidth()*0.23f)));
                     lookY=Math.max(-1,Math.min(1,(e.getY(i)-getHeight()*0.5f)/(getHeight()*0.5f)));
