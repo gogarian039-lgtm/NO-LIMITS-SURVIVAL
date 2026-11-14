@@ -6,7 +6,7 @@ android {
         applicationId 'com.nolimits.survival'
         minSdk 23
         targetSdk 35
-        versionCode 101
-        versionName '1.3-hud'
+        versionCode 102
+        versionName '1.4-survival'
     }
 }
