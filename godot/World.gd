@@ -207,7 +207,7 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.index == move_touch:
             joystick = ((event.position - joystick_center) / 90.0).limit_length(1)
         elif event.index == look_touch:
-            var motion := event.position - last_look
+            var motion: Vector2 = event.position - last_look
             yaw -= motion.x * 0.004
             pitch = clampf(pitch - motion.y * 0.004, -1.3, 1.3)
             last_look = event.position
