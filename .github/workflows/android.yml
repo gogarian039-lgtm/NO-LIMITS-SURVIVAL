@@ -18,18 +18,25 @@ jobs:
         run: |
           echo "Building commit: $GITHUB_SHA"
           git log -1 --format='%h %s'
-          grep 'versionName' app/build.gradle
+          grep -E 'versionName|versionCode|targetSdk' app/build.gradle
           grep -n 'PICK UP' app/src/main/java/com/nolimits/survival/MainActivity.java
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
+      - name: Inspect compiled APK metadata
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging "$APK" | grep -E "package:|targetSdkVersion:|sdkVersion:"
+          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging "$APK" | grep -q "targetSdkVersion:'35'"
+          $ANDROID_HOME/build-tools/35.0.0/aapt dump badging "$APK" | grep -q "versionCode='100'"
       - name: Record APK provenance
         run: |
           mkdir -p apk-release
-          cp app/build/outputs/apk/debug/app-debug.apk apk-release/NO-LIMITS-SURVIVAL-1.1-resources.apk
-          printf 'Commit: %s\nVersion: 1.1-resources\nPackage: com.nolimits.survival\n' "$GITHUB_SHA" > apk-release/BUILD-INFO.txt
+          cp app/build/outputs/apk/debug/app-debug.apk apk-release/NO-LIMITS-SURVIVAL-1.2-android16.apk
+          printf 'Commit: %s\nVersion: 1.2-android16\nPackage: com.nolimits.survival\n' "$GITHUB_SHA" > apk-release/BUILD-INFO.txt
           sha256sum apk-release/*.apk >> apk-release/BUILD-INFO.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: NO-LIMITS-SURVIVAL-1.1-resources-${{ github.run_number }}
+          name: NO-LIMITS-SURVIVAL-1.2-android16-${{ github.run_number }}
           path: apk-release/
           if-no-files-found: error
