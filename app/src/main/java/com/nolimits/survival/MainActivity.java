@@ -46,8 +46,8 @@ public class MainActivity extends Activity {
         float health=100f, hunger=100f, thirst=100f;
         float survivalSeconds=0f;
         boolean alive=true;
-        final float[][] resources = {{2.5f,2.5f,0},{7.5f,3.5f,0},{10.5f,4.5f,1},{4.5f,7.5f,1},{12.5f,9.5f,0},{8.5f,12.5f,1},{3.5f,12.5f,0}};
-        final boolean[] collected = new boolean[7];
+        final float[][] resources = {{2.5f,2.5f,0},{7.5f,3.5f,0},{10.5f,4.5f,1},{4.5f,7.5f,1},{12.5f,9.5f,0},{8.5f,12.5f,1},{3.5f,12.5f,0},{4.5f,4.5f,2},{8.5f,5.5f,3},{11.5f,8.5f,2},{5.5f,11.5f,3},{12.5f,12.5f,2},{2.5f,9.5f,3}};
+        final boolean[] collected = new boolean[resources.length];
         String notice = "";
         long noticeUntil = 0;
         long previous = System.nanoTime();
@@ -78,7 +78,11 @@ public class MainActivity extends Activity {
             int i=nearestResource();
             if(i<0){notice="Move closer to a resource";noticeUntil=System.currentTimeMillis()+1500;return;}
             collected[i]=true;
-            if(resources[i][2]==0){wood++;notice="+1 WOOD";}else{stone++;notice="+1 STONE";}
+            int kind=(int)resources[i][2];
+            if(kind==0){wood++;notice="+1 WOOD";}
+            else if(kind==1){stone++;notice="+1 STONE";}
+            else if(kind==2){hunger=Math.min(100f,hunger+35f);notice="ATE BERRIES +35 FOOD";}
+            else {thirst=Math.min(100f,thirst+45f);notice="DRANK WATER +45 WATER";}
             noticeUntil=System.currentTimeMillis()+1500;
         }
         void resetSurvival() {
@@ -190,9 +194,17 @@ public class MainActivity extends Activity {
                     fill(c,0xff76512c,screenX-size*0.10f,bottom-size*0.6f,screenX+size*0.10f,bottom);
                     circle(c,0xff246c32,screenX,bottom-size*0.75f,size*0.34f);
                     circle(c,0xff358343,screenX-size*0.17f,bottom-size*0.65f,size*0.26f);
-                } else {
+                } else if(resources[best][2]==1) {
                     circle(c,0xff777f88,screenX,bottom-size*0.16f,size*0.27f);
                     circle(c,0xffa6abb0,screenX-size*0.07f,bottom-size*0.24f,size*0.14f);
+                } else if(resources[best][2]==2) {
+                    circle(c,0xff246c32,screenX,bottom-size*0.42f,size*0.36f);
+                    circle(c,0xffc43c4b,screenX-size*0.15f,bottom-size*0.40f,size*0.10f);
+                    circle(c,0xffe34e5e,screenX+size*0.13f,bottom-size*0.50f,size*0.10f);
+                    circle(c,0xffe34e5e,screenX,bottom-size*0.26f,size*0.10f);
+                } else {
+                    circle(c,0xff318ac2,screenX,bottom-size*0.18f,size*0.36f);
+                    circle(c,0xff7bd6f5,screenX-size*0.10f,bottom-size*0.28f,size*0.15f);
                 }
             }
             // Crosshair and optional third-person avatar overlay.
