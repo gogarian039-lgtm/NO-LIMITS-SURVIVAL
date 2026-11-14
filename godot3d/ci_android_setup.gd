@@ -10,6 +10,5 @@ func _initialize() -> void:
 	var settings: EditorSettings = EditorInterface.get_editor_settings()
 	settings.set_setting("export/android/android_sdk_path", sdk)
 	settings.set_setting("export/android/java_sdk_path", java)
-	settings.save()
 	print("Saved Android SDK and Java SDK paths in Godot editor settings")
 	quit()
