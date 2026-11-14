@@ -109,9 +109,9 @@ jobs:
         run: |
           set -euo pipefail
           cat > godot3d/ci_export_diagnostics.gd <<'GDSCRIPT'
-          extends EditorScript
+          extends SceneTree
 
-          func _run() -> void:
+          func _initialize() -> void:
               var settings := EditorInterface.get_editor_settings()
               var sdk := OS.get_environment("ANDROID_HOME")
               var java := OS.get_environment("JAVA_HOME")
@@ -127,6 +127,7 @@ jobs:
                   settings.set_setting(setting, values[setting])
                   print("CI configured ", setting, " = ", "<hidden>" if setting.ends_with("_pass") else values[setting])
               settings.save()
+              quit()
           GDSCRIPT
           godot --headless --path godot3d --editor --script res://ci_export_diagnostics.gd
           rm -f godot3d/ci_export_diagnostics.gd
