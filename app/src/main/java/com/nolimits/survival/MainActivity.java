@@ -43,6 +43,9 @@ public class MainActivity extends Activity {
         int stickId = -1, lookId = -1;
         boolean thirdPerson = false;
         int wood = 0, stone = 0;
+        float health=100f, hunger=100f, thirst=100f;
+        float survivalSeconds=0f;
+        boolean alive=true;
         final float[][] resources = {{2.5f,2.5f,0},{7.5f,3.5f,0},{10.5f,4.5f,1},{4.5f,7.5f,1},{12.5f,9.5f,0},{8.5f,12.5f,1},{3.5f,12.5f,0}};
         final boolean[] collected = new boolean[7];
         String notice = "";
@@ -71,11 +74,23 @@ public class MainActivity extends Activity {
             return best;
         }
         void collect() {
+            if(!alive){resetSurvival();return;}
             int i=nearestResource();
             if(i<0){notice="Move closer to a resource";noticeUntil=System.currentTimeMillis()+1500;return;}
             collected[i]=true;
             if(resources[i][2]==0){wood++;notice="+1 WOOD";}else{stone++;notice="+1 STONE";}
             noticeUntil=System.currentTimeMillis()+1500;
+        }
+        void resetSurvival() {
+            health=100f;hunger=100f;thirst=100f;survivalSeconds=0;alive=true;
+            px=3.5f;py=3.5f;angle=0.35f;wood=0;stone=0;
+            for(int i=0;i<collected.length;i++)collected[i]=false;
+            notice="New survival run";noticeUntil=System.currentTimeMillis()+1800;
+        }
+        void statusBar(Canvas c,String text,float value,float x,float y,float width,int color,float font) {
+            label(c,text+" "+(int)value+"%",x,y,font);
+            fill(c,0x99303030,x,y+dp(5),x+width,y+dp(12));
+            fill(c,color,x,y+dp(5),x+width*Math.max(0,Math.min(100,value))/100f,y+dp(12));
         }
         float dp(float value) { return value * getResources().getDisplayMetrics().density; }
         float hudMargin() { return dp(14); }
@@ -106,7 +121,14 @@ public class MainActivity extends Activity {
             previous=now;
             // Left thumbstick: forward/back and strafe. Right half: look.
             float forward=-stickY, strafe=stickX;
-            float speed=2.8f*dt;
+            if(alive) {
+                survivalSeconds+=dt;
+                hunger=Math.max(0,hunger-dt*0.22f);
+                thirst=Math.max(0,thirst-dt*0.38f);
+                if(hunger<=0||thirst<=0)health=Math.max(0,health-dt*2.0f);
+                if(health<=0){alive=false;stickX=stickY=lookX=lookY=0;notice="You did not survive";noticeUntil=Long.MAX_VALUE;}
+            }
+            float speed=alive?2.8f*dt:0f;
             move((float)(Math.cos(angle)*forward-Math.sin(angle)*strafe)*speed,
                  (float)(Math.sin(angle)*forward+Math.cos(angle)*strafe)*speed);
             angle += lookX*dt*1.9f;
@@ -194,13 +216,18 @@ public class MainActivity extends Activity {
             fill(c,0x990d2518,left-dp(5),top-dp(5),Math.min(w*0.60f,dp(265)),top+dp(74));
             label(c,"NO LIMITS SURVIVAL",left,top+dp(20),titleSize);
             label(c,"WOOD: "+wood+"   STONE: "+stone,left,top+dp(48),smallSize);
+            float barWidth=Math.min(dp(130),w*0.34f);
+            float barTop=top+dp(100);
+            statusBar(c,"HP",health,left,barTop,barWidth,0xffdf5555,smallSize);
+            statusBar(c,"FOOD",hunger,left,barTop+dp(38),barWidth,0xffdba64d,smallSize);
+            statusBar(c,"WATER",thirst,left,barTop+dp(76),barWidth,0xff4d9ddd,smallSize);
             if(System.currentTimeMillis()<noticeUntil)
-                label(c,notice,left,top+dp(97),smallSize);
+                label(c,notice,left,top+dp(225),smallSize);
             fill(c,0xaa303c44,cameraLeft(),cameraTop(),w-hudMargin(),cameraTop()+buttonHeight());
             label(c,thirdPerson?"CAM: 3RD":"CAM: 1ST",cameraLeft()+dp(9),
                   cameraTop()+buttonHeight()*0.60f,smallSize);
             fill(c,0xbb245d34,pickupLeft(),pickupTop(),w-hudMargin(),pickupTop()+buttonHeight());
-            label(c,"PICK UP",pickupLeft()+dp(12),pickupTop()+buttonHeight()*0.62f,smallSize);
+            label(c,alive?"PICK UP":"RESTART",pickupLeft()+dp(9),pickupTop()+buttonHeight()*0.62f,smallSize);
             if(nearestResource()>=0)
                 label(c,"Resource nearby!",left,h-dp(52),smallSize);
             postInvalidateDelayed(16);
